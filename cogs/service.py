@@ -100,7 +100,7 @@ class Service(Cog_Extension):
     async def register(self, interaction: discord.Interaction, area:Choice[str],school:str,name:str,student_id:str,grade:Choice[str],tag:Choice[str]):
         embed=discord.Embed(title="🏫 NASH 註冊資料", color=0xea8053,timestamp=datetime.utcnow())
         embed.add_field(name="填報人",value=interaction.user.mention, inline=False)
-        embed.add_field(name="地區",value=area, inline=False)        
+        embed.add_field(name="地區",value=area.name, inline=False)        
         embed.add_field(name="學校",value=school, inline=False)
         embed.add_field(name="姓名",value=name, inline=False)
         embed.add_field(name="ID",value=student_id, inline=False)
