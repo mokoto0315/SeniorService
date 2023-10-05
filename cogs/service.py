@@ -146,7 +146,8 @@ class Service(Cog_Extension):
             embed.add_field(name="資料已送出",value="請等候註冊人員給予身分", inline=False)
             await message.edit(embed=embed)
             await interaction.response.send_message("已更新完成",ephemeral=True)
-            await message.edit(embed=embed)
+            channel = self.bot.get_channel(int(channel_id['register']))
+            await channel.send(embed=embed)
         except BaseException as e:
             print(traceback.format_exception(e.__class__, e, e.__traceback__))
     
