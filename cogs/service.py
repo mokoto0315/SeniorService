@@ -18,7 +18,7 @@ with open("setting/role.json", "r", encoding='UTF-8') as f:
 with open("setting/school.json", "r", encoding='UTF-8') as f:
     school_list: dict = json.load(f)
 admin = role_id.get("admin", [])
-schools = [Choice(name=name, value=code) for code, name in school_list.items()]
+schools = [Choice(name=data["name"], value=code) for code, data in school_list.items()]
 
 
 # 繼承Cog_Extension的self.bot物件
@@ -86,7 +86,7 @@ class Service(Cog_Extension):
             print(e)
 
     @app_commands.command(name="register", description="開始註冊")
-    @app_commands.describe(school="輸入學校名稱，直至出現選項並選擇，如無學校選項，請嘗試輸入全名",
+    @app_commands.describe(school="輸入學校名稱，直至出現選項並選擇，如無學校選項，請嘗試改變輸入詞",
                            name="請輸入名字(真名匿名皆可)",
                            student_id="請輸入學號(末三碼請以***替換)", grade="選擇年級", tag="是否接受通知")
     @app_commands.choices(
@@ -104,6 +104,8 @@ class Service(Cog_Extension):
     async def register(self, interaction: discord.Interaction, school: str,
                        name: str,
                        student_id: str, grade: Choice[str], tag: Choice[str]):
+        await interaction.response.defer()
+
         await interaction.user.add_roles(interaction.guild.get_role(role_id["grade"]["prefix"]),
                                          interaction.guild.get_role(role_id["grade"][grade.value]))
         await interaction.user.add_roles(interaction.guild.get_role(role_id["tag"]["prefix"]),
@@ -118,7 +120,7 @@ class Service(Cog_Extension):
         embed.add_field(name="是否接受提及", value=tag.name, inline=True)
         embed.add_field(name="請確認是否填寫正確", value="請稍後註冊人員接手", inline=False)
         embed.set_footer(text=interaction.guild.name)
-        await interaction.response.send_message(embed=embed)
+        await interaction.followup.send(embed=embed)
 
     @register.autocomplete('school')
     async def school_autocomplete(self, interaction: discord.Interaction, current: str) -> List[Choice[str]]:
