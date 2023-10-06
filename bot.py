@@ -1,44 +1,49 @@
-import os, asyncio, discord
-from typing import Optional
-from discord.ext import commands
 import json
+import logging
+import os
 from datetime import datetime as dt
+from typing import Optional
+
+import discord
 from discord import app_commands
 from discord.app_commands import Choice
+from discord.ext import commands
 
-with open("setting/setup.json","r", encoding='UTF-8') as f:
+with open("setting/setup.json", "r", encoding='UTF-8') as f:
     setup = json.load(f)
-with open("setting/role.json","r",encoding='UTF-8') as f:
+with open("setting/role.json", "r", encoding='UTF-8') as f:
     role = json.load(f)
-with open("setting/channel.json","r",encoding='UTF-8') as f:
+with open("setting/channel.json", "r", encoding='UTF-8') as f:
     cha = json.load(f)
 
 admin = role.get("admin", [])
 intents = discord.Intents.all()
-bot = commands.Bot(command_prefix = ".", intents = intents)
+bot = commands.Bot(command_prefix=".", intents=intents)
+
 
 ## 啟動管理
 @bot.event
 async def on_ready():
+    await load_extensions()
     slash = await bot.tree.sync()
     # 狀態顯示系統(後端)
-    state = (
-        "∴°﹒:+:-*-*-*-*-*-*-*☆★☆*-*-*-*-*-*-*-:+:‧°∴" + "\n"
-        "     當前狀態: 運行中..." + "\n"
-        "     登錄系統端: " + str(bot.user) + "\n"
-        "     系統端版本: " + setup['version'] + "\n"
-        "     載入指令數: " +  str(len(slash)) + "\n"
-        "     當前時間: " + dt.now().strftime("%Y/%m/%d %H:%M:%S") + "\n"
-        "∴°﹒:+:-*-*-*-*-*-*-*☆★☆*-*-*-*-*-*-*-:+:‧°∴"
-    )
+    state = f"""
+∴°﹒:+:-*-*-*-*-*-*-*☆★☆*-*-*-*-*-*-*-:+:‧°∴"
+     當前狀態: 運行中...
+     登錄系統端: {str(bot.user)}
+     系統端版本: {setup['version']}
+     載入指令數: {str(len(slash))}
+     當前時間: {dt.now().strftime("%Y/%m/%d %H:%M:%S")}
+∴°﹒:+:-*-*-*-*-*-*-*☆★☆*-*-*-*-*-*-*-:+:‧°∴
+"""
     print(state)
     # 狀態顯示系統(前端)
-    embed=discord.Embed(title="系統狀態",color=0xb8d8af)
+    embed = discord.Embed(title="系統狀態", color=0xb8d8af)
     embed.add_field(name="當前狀態", value="🚥 運行中...", inline=False)
     embed.add_field(name="登錄系統端", value=str(bot.user), inline=True)
     embed.add_field(name="系統端版本", value=setup['version'], inline=True)
     embed.add_field(name="載入指令數", value=str(len(slash)), inline=True)
-    embed.set_footer(text="當前時間 "+ dt.now().strftime("%Y/%m/%d %H:%M:%S"))
+    embed.set_footer(text="當前時間 " + dt.now().strftime("%Y/%m/%d %H:%M:%S"))
     for channel_id in cha['data']:
         channel = bot.get_channel(channel_id)
         await channel.send(embed=embed)
@@ -51,7 +56,7 @@ async def on_ready():
     # type可以是playing（遊玩中）、streaming（直撥中）、listening（聆聽中）、watching（觀看中）、custom（自定義）
     activity_w = discord.Activity(type=discord.ActivityType.playing, name="系統開發中...")
 
-    await bot.change_presence(status=status_w, activity=activity_w) 
+    await bot.change_presence(status=status_w, activity=activity_w)
 
 
 ## 模組管理
@@ -62,6 +67,7 @@ async def load_extensions():
         if filename.endswith(".py"):
             await bot.load_extension(f"cogs.{filename[:-3]}")
 
+
 @bot.tree.command(name="mods", description="管理模組")
 @app_commands.describe(type="選擇類型", mod="模組名")
 @app_commands.choices(
@@ -69,7 +75,7 @@ async def load_extensions():
         Choice(name="載入模組", value="load"),
         Choice(name="重載模組", value="reload"),
         Choice(name="卸載模組", value="unload"),
-        Choice(name="查詢當前模組",value="list")
+        Choice(name="查詢當前模組", value="list")
     ],
 )
 async def mods(interaction: discord.Interaction, type: Choice[str], mod: Optional[str]):
@@ -94,21 +100,16 @@ async def mods(interaction: discord.Interaction, type: Choice[str], mod: Optiona
         action = f'{action} **卸載模組**'
     elif type == "list":
         loaded_cogs = ", ".join(f"**{cog.replace('cogs.', '')}**" for cog in bot.extensions.keys())
-        embed=discord.Embed(title="⚙ NASH 資訊管理", color=0xea8053)
+        embed = discord.Embed(title="⚙ NASH 資訊管理", color=0xea8053)
         embed.add_field(name="已載入的模組", value=loaded_cogs, inline=False)
-        await interaction.response.send_message(embed=embed)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
         return
 
-    embed=discord.Embed(title="⚙ NASH 資訊管理", color=0xea8053)
+    embed = discord.Embed(title="⚙ NASH 資訊管理", color=0xea8053)
     embed.add_field(name=action, value=mod, inline=False)
-    await interaction.response.send_message(embed=embed)
-
-async def main():
-    await load_extensions()
-    async with bot:
-        await bot.start(setup['Token'])
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 # 確定執行此py檔才會執行
 if __name__ == "__main__":
-    asyncio.run(main())
+    bot.run(setup['Token'], log_level=logging.DEBUG)
