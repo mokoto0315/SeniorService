@@ -235,6 +235,7 @@ class Service(Cog_Extension):
                             school: Optional[str], name: Optional[str], student_id: Optional[str],
                             grade: Optional[Choice[str]],
                             tag: Optional[Choice[str]]):
+        await interaction.response.defer(ephemeral=True)
         try:
             # 取得要編輯的訊息
             channel = interaction.client.get_channel(interaction.channel_id)
@@ -242,8 +243,7 @@ class Service(Cog_Extension):
             # 更新訊息
             # 取得要編輯的嵌入
             new_embed = message.embeds[message.embeds.index(message.embeds[0])]
-
-            user = new_embed.fields[0].value
+            member = interaction.guild.get_member(int(new_embed.fields[0].value[2:-1]))
             if school is not None:
                 if school in school_list.keys():
                     school_role_id = 0
@@ -267,39 +267,36 @@ class Service(Cog_Extension):
                         school_list[school]["role_id"] = school_role_id
                         with open("setting/school.json", "w", encoding='UTF-8') as school_file:
                             school_file.write(json.dumps(school_list, indent=4, ensure_ascii=False))
-                    await user.add_roles(interaction.guild.get_role(role_id["school_prefix"]),
-                                         interaction.guild.get_role(school_role_id))
+                    await member.add_roles(interaction.guild.get_role(role_id["school_prefix"]),
+                                           interaction.guild.get_role(school_role_id))
                 else:
-                    await user.add_roles(interaction.guild.get_role(role_id["school_prefix"]))
+                    await member.add_roles(interaction.guild.get_role(role_id["school_prefix"]))
                     await interaction.followup.send(
                         "您所輸入的學校不在名單上，請確認您是否選擇了提供的選項，如果沒有出現選項則請更換不同詞彙再嘗試，若仍無請通知註冊人員協助。")
             if name is None:
                 name = new_embed.fields[2].value
             if student_id is None:
                 student_id = new_embed.fields[3].value
-            if grade is None:
-                grade = new_embed.fields[4].value
-            else:
-                await user.add_roles(interaction.guild.get_role(role_id["grade"]["prefix"]),
-                                     interaction.guild.get_role(role_id["grade"][grade.value]))
-            if tag is None:
-                tag = new_embed.fields[5].value
-            else:
-                await user.add_roles(interaction.guild.get_role(role_id["tag"]["prefix"]),
-                                     interaction.guild.get_role(role_id["tag"][tag.value]))
+            if grade is not None:
+                await member.add_roles(interaction.guild.get_role(role_id["grade"]["prefix"]),
+                                       interaction.guild.get_role(role_id["grade"][grade.value]))
+            if tag is not None:
+                await member.add_roles(interaction.guild.get_role(role_id["tag"]["prefix"]),
+                                       interaction.guild.get_role(role_id["tag"][tag.value]))
 
             embed = discord.Embed(title="🏫 NASH 註冊資料", color=0xea8053, timestamp=datetime.utcnow())
-            embed.add_field(name="填報人", value=user, inline=False)
+            embed.add_field(name="填報人", value=member.mention, inline=False)
             embed.add_field(name="學校", value=new_embed.fields[1].value if school is None else (
                 school_list[school]["name"] if school in school_list.keys() else "無學校，請重新註冊或請註冊人員協助"),
                             inline=False)
             embed.add_field(name="姓名", value=name, inline=False)
             embed.add_field(name="ID", value=student_id, inline=False)
-            embed.add_field(name="年級", value=grade, inline=True)
-            embed.add_field(name="是否接受提及", value=tag, inline=True)
+            embed.add_field(name="年級", value=new_embed.fields[4].value if grade is None else grade.name, inline=True)
+            embed.add_field(name="是否接受提及", value=new_embed.fields[5].value if tag is None else tag.name,
+                            inline=True)
             embed.add_field(name="資料已送出", value="請等候註冊人員給予身分", inline=False)
             await message.edit(embed=embed)
-            await interaction.response.send_message("已更新完成", ephemeral=True)
+            await interaction.followup.send("已更新完成")
             channel = self.bot.get_channel(int(channel_id['register']))
             await channel.send(embed=embed)
         except BaseException as e:
