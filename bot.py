@@ -80,25 +80,23 @@ async def load_extensions():
 )
 async def mods(interaction: discord.Interaction, type: Choice[str], mod: Optional[str]):
     # 確認使用者身分
-    user = interaction.user
     action = ""
-    if user.id not in admin:
+    if interaction.user.id not in admin:
         await interaction.response.send_message("你沒有權限使用此指令。")
         return
-    type = type.value
-    if type == "load":
+    if type.value == "load":
         await bot.load_extension(f"cogs.{mod}")
         action = discord.utils.get(bot.emojis, name='emoji_13')
         action = f'{action} **載入模組**'
-    elif type == "reload":
+    elif type.value == "reload":
         await bot.reload_extension(f"cogs.{mod}")
         action = discord.utils.get(bot.emojis, name='emoji_14')
         action = f'{action} **重載模組**'
-    elif type == "unload":
+    elif type.value == "unload":
         await bot.unload_extension(f"cogs.{mod}")
         action = discord.utils.get(bot.emojis, name='emoji_15')
         action = f'{action} **卸載模組**'
-    elif type == "list":
+    elif type.value == "list":
         loaded_cogs = ", ".join(f"**{cog.replace('cogs.', '')}**" for cog in bot.extensions.keys())
         embed = discord.Embed(title="⚙ NASH 資訊管理", color=0xea8053)
         embed.add_field(name="已載入的模組", value=loaded_cogs, inline=False)

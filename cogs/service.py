@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Optional, List
 
 import discord
-from discord import app_commands
+from discord import app_commands, File
 from discord.app_commands import Choice
 from discord.ext import commands
 
@@ -15,14 +15,26 @@ with open("setting/channel.json", "r", encoding='UTF-8') as f:
     channel_id = json.load(f)
 with open("setting/role.json", "r", encoding='UTF-8') as f:
     role_id = json.load(f)
+
+admin = role_id.get("admin", [])
+
 with open("setting/school.json", "r", encoding='UTF-8') as f:
     school_list: dict = json.load(f)
-admin = role_id.get("admin", [])
-schools = [Choice(name=data["name"], value=code) for code, data in school_list.items()]
+
+
+def reload_school_json():
+    with open("setting/school.json", "r", encoding='UTF-8') as school_file:
+        global school_list
+        school_list = json.load(school_file)
 
 
 # 繼承Cog_Extension的self.bot物件
 class Service(Cog_Extension):
+    @app_commands.command(name="reload_school")
+    async def reload_school(self, interaction: discord.Interaction):
+        await interaction.response.defer()
+        reload_school_json()
+        await interaction.followup.send("reloaded!", file=File("./setting/school.json"))
 
     @commands.Cog.listener()
     async def on_interaction(self, interaction: discord.Interaction):
@@ -105,15 +117,36 @@ class Service(Cog_Extension):
                        name: str,
                        student_id: str, grade: Choice[str], tag: Choice[str]):
         await interaction.response.defer()
-
+        school_role_id = 0
+        if school_list[school]["role_id"] != 0:
+            school_role_id: int = school_list[school]["role_id"]
+            if school_list[school]["nickname"] != "" and interaction.guild.get_role(school_role_id).name != \
+                    school_list[school]["nickname"]:
+                await interaction.guild.get_role(school_role_id).edit(name=school_list[school]["nickname"])
+        else:
+            for role in interaction.guild.roles:
+                if school_list[school]["name"] == role.name or school_list[school]["nickname"] == role.name:
+                    school_role_id: int = role.id
+                    break
+            if school_role_id == 0:
+                new_school_role = await interaction.guild.create_role(
+                    name=school_list[school]["nickname"] if school_list[school]["nickname"] != "" else
+                    school_list[school][
+                        "name"])
+                await interaction.guild.edit_role_positions({new_school_role: 16})
+                school_role_id = new_school_role.id
+            school_list[school]["role_id"] = school_role_id
+            with open("setting/school.json", "w", encoding='UTF-8') as school_file:
+                school_file.write(json.dumps(school_list, indent=4, ensure_ascii=False))
+        await interaction.user.add_roles(interaction.guild.get_role(role_id["school_prefix"]),
+                                         interaction.guild.get_role(school_role_id))
         await interaction.user.add_roles(interaction.guild.get_role(role_id["grade"]["prefix"]),
                                          interaction.guild.get_role(role_id["grade"][grade.value]))
         await interaction.user.add_roles(interaction.guild.get_role(role_id["tag"]["prefix"]),
                                          interaction.guild.get_role(role_id["tag"][tag.value]))
-
         embed = discord.Embed(title="🏫 NASH 註冊資料", color=0xea8053, timestamp=datetime.utcnow())
         embed.add_field(name="填報人", value=interaction.user.mention, inline=False)
-        embed.add_field(name="學校", value=school, inline=False)
+        embed.add_field(name="學校", value=school_list[school]["name"], inline=False)
         embed.add_field(name="姓名", value=name, inline=False)
         embed.add_field(name="ID", value=student_id, inline=False)
         embed.add_field(name="年級", value=grade.name, inline=True)
@@ -124,6 +157,11 @@ class Service(Cog_Extension):
 
     @register.autocomplete('school')
     async def school_autocomplete(self, interaction: discord.Interaction, current: str) -> List[Choice[str]]:
+        schools = [
+            Choice(name=data["name"] if data["nickname"] == "" else f"[{data['nickname']}]{data['name']}", value=code)
+            for
+            code, data in
+            school_list.items()]
         suggestion = []
         for school in schools:
             if current in school.name:
@@ -133,13 +171,13 @@ class Service(Cog_Extension):
     @app_commands.command(name="edit_register", description="修改註冊資料")
     @app_commands.describe(mid="註冊ID", school="修改學校", name="修改名字", student_id="修改學號", grade="修改年級",
                            tag="修改通知")
-    async def edit_register(self, interaction: discord.Interaction, mid: int, area: Optional[str],
+    async def edit_register(self, interaction: discord.Interaction, mid: str, area: Optional[str],
                             school: Optional[str], name: Optional[str], student_id: Optional[str], grade: Optional[str],
                             tag: Optional[str]):
         try:
             # 取得要編輯的訊息
             channel = interaction.client.get_channel(interaction.channel_id)
-            message = await channel.fetch_message(mid)
+            message = await channel.fetch_message(int(mid))
             # 更新訊息
             # 取得要編輯的嵌入
             new_embed = message.embeds[message.embeds.index(message.embeds[0])]
