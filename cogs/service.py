@@ -257,7 +257,8 @@ class Service(Cog_Extension):
 
             embed = discord.Embed(title="🏫 NASH 註冊資料", color=0xea8053, timestamp=datetime.utcnow())
             embed.add_field(name="填報人", value=user, inline=False)
-            embed.add_field(name="學校", value=school, inline=False)
+            embed.add_field(name="學校", value=school_list[school][
+                "name"] if school in school_list.keys() else "無學校，請重新註冊或請註冊人員協助", inline=False)
             embed.add_field(name="姓名", value=name, inline=False)
             embed.add_field(name="ID", value=student_id, inline=False)
             embed.add_field(name="年級", value=grade, inline=True)
