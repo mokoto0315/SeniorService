@@ -216,26 +216,25 @@ class Service(Cog_Extension):
         embed.set_footer(text=interaction.guild.name)
         await interaction.followup.send(embed=embed)
 
-    @register.autocomplete('school')
-    @school_nickname.autocomplete('school')
-    async def school_autocomplete(self, interaction: discord.Interaction, current: str) -> List[Choice[str]]:
-        schools = [
-            Choice(name=data["name"] if data["nickname"] == "" else f"[{data['nickname']}]{data['name']}", value=code)
-            for
-            code, data in
-            school_list.items()]
-        suggestion = []
-        for school in schools:
-            if current in school.name:
-                suggestion.append(school)
-        return suggestion if len(suggestion) <= 25 else suggestion[0:24]
-
     @app_commands.command(name="edit_register", description="修改註冊資料")
     @app_commands.describe(mid="註冊ID", school="修改學校", name="修改名字", student_id="修改學號", grade="修改年級",
                            tag="修改通知")
-    async def edit_register(self, interaction: discord.Interaction, mid: str, area: Optional[str],
-                            school: Optional[str], name: Optional[str], student_id: Optional[str], grade: Optional[str],
-                            tag: Optional[str]):
+    @app_commands.choices(
+        grade=[
+            Choice(name="高一", value="grade_1"),
+            Choice(name="高二", value="grade_2"),
+            Choice(name="高三", value="grade_3"),
+            Choice(name="畢業", value="graduated"),
+        ],
+        tag=[
+            Choice(name="是", value="allow"),
+            Choice(name="否", value="non_allow"),
+        ]
+    )
+    async def edit_register(self, interaction: discord.Interaction, mid: str,
+                            school: Optional[str], name: Optional[str], student_id: Optional[str],
+                            grade: Optional[Choice[str]],
+                            tag: Optional[Choice[str]]):
         try:
             # 取得要編輯的訊息
             channel = interaction.client.get_channel(interaction.channel_id)
@@ -245,22 +244,19 @@ class Service(Cog_Extension):
             new_embed = message.embeds[message.embeds.index(message.embeds[0])]
 
             user = new_embed.fields[0].value
-            if area is None:
-                area = new_embed.fields[1].value
             if school is None:
-                school = new_embed.fields[2].value
+                school = new_embed.fields[1].value
             if name is None:
-                name = new_embed.fields[3].value
+                name = new_embed.fields[2].value
             if student_id is None:
-                student_id = new_embed.fields[4].value
+                student_id = new_embed.fields[3].value
             if grade is None:
-                grade = new_embed.fields[5].value
+                grade = new_embed.fields[4].value
             if tag is None:
-                tag = new_embed.fields[6].value
+                tag = new_embed.fields[5].value
 
             embed = discord.Embed(title="🏫 NASH 註冊資料", color=0xea8053, timestamp=datetime.utcnow())
             embed.add_field(name="填報人", value=user, inline=False)
-            embed.add_field(name="地區", value=area, inline=False)
             embed.add_field(name="學校", value=school, inline=False)
             embed.add_field(name="姓名", value=name, inline=False)
             embed.add_field(name="ID", value=student_id, inline=False)
@@ -273,6 +269,21 @@ class Service(Cog_Extension):
             await channel.send(embed=embed)
         except BaseException as e:
             print(traceback.format_exception(e.__class__, e, e.__traceback__))
+
+    @register.autocomplete('school')
+    @school_nickname.autocomplete('school')
+    @edit_register.autocomplete('school')
+    async def school_autocomplete(self, interaction: discord.Interaction, current: str) -> List[Choice[str]]:
+        schools = [
+            Choice(name=data["name"] if data["nickname"] == "" else f"[{data['nickname']}]{data['name']}", value=code)
+            for
+            code, data in
+            school_list.items()]
+        suggestion = []
+        for school in schools:
+            if current in school.name:
+                suggestion.append(school)
+        return suggestion if len(suggestion) <= 25 else suggestion[0:24]
 
 
 # 載入cog中
