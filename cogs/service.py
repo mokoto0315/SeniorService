@@ -110,6 +110,19 @@ class Service(Cog_Extension):
         except Exception as e:
             print(e)
 
+    @app_commands.command(name="school_nickname", description="設定學校短稱")
+    async def school_nickname(self, interaction: discord.Interaction, school: str,
+                              nickname: str,
+                              ):
+        if interaction.user.id not in admin:
+            await interaction.response.send_message("你沒有權限使用此指令。")
+            return
+        await interaction.response.defer()
+        school_list[school]["nickname"] = nickname
+        with open("setting/school.json", "w", encoding='UTF-8') as school_file:
+            school_file.write(json.dumps(school_list, indent=4, ensure_ascii=False))
+        await interaction.followup.send(f"{school_list[school]['name']} 的短稱被設為 {school_list[school]['nickname']}")
+
     @app_commands.command(name="register", description="開始註冊")
     @app_commands.describe(school="輸入學校名稱，直至出現選項並選擇，如無學校選項，請嘗試改變輸入詞",
                            name="請輸入名字(真名匿名皆可)",
@@ -204,6 +217,7 @@ class Service(Cog_Extension):
         await interaction.followup.send(embed=embed)
 
     @register.autocomplete('school')
+    @school_nickname.autocomplete('school')
     async def school_autocomplete(self, interaction: discord.Interaction, current: str) -> List[Choice[str]]:
         schools = [
             Choice(name=data["name"] if data["nickname"] == "" else f"[{data['nickname']}]{data['name']}", value=code)
