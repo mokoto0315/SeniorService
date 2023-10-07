@@ -129,6 +129,35 @@ class Service(Cog_Extension):
     async def register(self, interaction: discord.Interaction, school: str,
                        name: str,
                        student_id: str, grade: Choice[str], tag: Choice[str]):
+        await self._register_member(interaction, interaction.user, school, name, student_id, grade, tag)
+
+    @app_commands.command(name="register_member", description="註冊別人")
+    @app_commands.describe(school="輸入學校名稱，直至出現選項並選擇，如無學校選項，請嘗試改變輸入詞",
+                           name="請輸入名字(真名匿名皆可)",
+                           student_id="請輸入學號(末三碼請以***替換)", grade="選擇年級", tag="是否接受通知")
+    @app_commands.choices(
+        grade=[
+            Choice(name="高一", value="grade_1"),
+            Choice(name="高二", value="grade_2"),
+            Choice(name="高三", value="grade_3"),
+            Choice(name="畢業", value="graduated"),
+        ],
+        tag=[
+            Choice(name="是", value="allow"),
+            Choice(name="否", value="non_allow"),
+        ]
+    )
+    async def register_member(self, interaction: discord.Interaction, member: discord.Member, school: str,
+                              name: str,
+                              student_id: str, grade: Choice[str], tag: Choice[str]):
+        if interaction.user.id not in admin:
+            await interaction.response.send_message("你沒有權限使用此指令。")
+            return
+        await self._register_member(interaction, member, school, name, student_id, grade, tag)
+
+    async def _register_member(self, interaction: discord.Interaction, member: discord.Member, school: str,
+                               name: str,
+                               student_id: str, grade: Choice[str], tag: Choice[str]):
         await interaction.response.defer()
         if school in school_list.keys():
             school_role_id = 0
@@ -152,18 +181,18 @@ class Service(Cog_Extension):
                 school_list[school]["role_id"] = school_role_id
                 with open("setting/school.json", "w", encoding='UTF-8') as school_file:
                     school_file.write(json.dumps(school_list, indent=4, ensure_ascii=False))
-            await interaction.user.add_roles(interaction.guild.get_role(role_id["school_prefix"]),
-                                             interaction.guild.get_role(school_role_id))
+            await member.add_roles(interaction.guild.get_role(role_id["school_prefix"]),
+                                   interaction.guild.get_role(school_role_id))
         else:
-            await interaction.user.add_roles(interaction.guild.get_role(role_id["school_prefix"]))
+            await member.add_roles(interaction.guild.get_role(role_id["school_prefix"]))
             await interaction.followup.send(
                 "您所輸入的學校不在名單上，請確認您是否選擇了提供的選項，如果沒有出現選項則請更換不同詞彙再嘗試，若仍無請通知註冊人員協助。")
-        await interaction.user.add_roles(interaction.guild.get_role(role_id["grade"]["prefix"]),
-                                         interaction.guild.get_role(role_id["grade"][grade.value]))
-        await interaction.user.add_roles(interaction.guild.get_role(role_id["tag"]["prefix"]),
-                                         interaction.guild.get_role(role_id["tag"][tag.value]))
+        await member.add_roles(interaction.guild.get_role(role_id["grade"]["prefix"]),
+                               interaction.guild.get_role(role_id["grade"][grade.value]))
+        await member.add_roles(interaction.guild.get_role(role_id["tag"]["prefix"]),
+                               interaction.guild.get_role(role_id["tag"][tag.value]))
         embed = discord.Embed(title="🏫 NASH 註冊資料", color=0xea8053, timestamp=datetime.utcnow())
-        embed.add_field(name="填報人", value=interaction.user.mention, inline=False)
+        embed.add_field(name="填報人", value=member.mention, inline=False)
         embed.add_field(name="學校", value=school_list[school][
             "name"] if school in school_list.keys() else "無學校，請重新註冊或請註冊人員協助", inline=False)
         embed.add_field(name="姓名", value=name, inline=False)
