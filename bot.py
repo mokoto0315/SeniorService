@@ -1,11 +1,11 @@
 import json
 import logging
 import os
+import pathlib
 from datetime import datetime as dt
 from typing import Optional
 
 import discord
-import wget
 from discord import app_commands
 from discord.app_commands import Choice
 from discord.ext import commands
@@ -70,13 +70,13 @@ async def load_extensions():
 
 
 @bot.tree.command(name="update_schools", description="更新school.json")
-@app_commands.describe(url="直接下載地址")
-async def mods(interaction: discord.Interaction, url: str):
+@app_commands.describe(file="新檔案")
+async def mods(interaction: discord.Interaction, file: discord.Attachment):
     if interaction.user.id not in admin:
         await interaction.response.send_message("你沒有權限使用此指令。")
         return
     await interaction.response.defer()
-    wget.download(url, "setting/school.json")
+    await file.save(pathlib.Path("./setting/school.json"))
     await interaction.followup.send("更新完成！")
 
 
