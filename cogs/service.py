@@ -271,6 +271,7 @@ class Service(Cog_Extension):
             print(traceback.format_exception(e.__class__, e, e.__traceback__))
 
     @register.autocomplete('school')
+    @register_member.autocomplete('school')
     @school_nickname.autocomplete('school')
     @edit_register.autocomplete('school')
     async def school_autocomplete(self, interaction: discord.Interaction, current: str) -> List[Choice[str]]:
