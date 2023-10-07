@@ -5,6 +5,7 @@ from datetime import datetime as dt
 from typing import Optional
 
 import discord
+import wget
 from discord import app_commands
 from discord.app_commands import Choice
 from discord.ext import commands
@@ -66,6 +67,17 @@ async def load_extensions():
     for filename in os.listdir("./cogs"):
         if filename.endswith(".py"):
             await bot.load_extension(f"cogs.{filename[:-3]}")
+
+
+@bot.tree.command(name="update_schools", description="更新school.json")
+@app_commands.describe(url="直接下載地址")
+async def mods(interaction: discord.Interaction, url: str):
+    if interaction.user.id not in admin:
+        await interaction.response.send_message("你沒有權限使用此指令。")
+        return
+    await interaction.response.defer()
+    wget.download(url, "setting/school.json")
+    await interaction.followup.send("更新完成！")
 
 
 @bot.tree.command(name="mods", description="管理模組")
