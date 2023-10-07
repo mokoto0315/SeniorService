@@ -1,1 +1,3 @@
 setup.json
+.local/
+.cache/
