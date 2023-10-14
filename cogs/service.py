@@ -58,35 +58,39 @@ class Service(Cog_Extension):
             style=discord.ButtonStyle.green,
             custom_id="delete"
         )
-        try:
-            if "custom_id" in interaction.data:
-                if interaction.data["custom_id"] == "register":
-                    category = discord.utils.get(interaction.guild.categories, id=1155424378553651250)
-                    permissions = {
-                        interaction.guild.default_role: discord.PermissionOverwrite(read_messages=False),
-                        interaction.user: discord.PermissionOverwrite(read_messages=True)
-                    }
-                    cha = await interaction.guild.create_text_channel(name="註冊代碼 " + interaction.user.name,
-                                                                      category=category, overwrites=permissions)
-                    await interaction.response.send_message(cha.mention + " 已創建", ephemeral=True)
-                    view = discord.ui.View()
-                    view.add_item(del_btn)
-                    embed = discord.Embed(title="🏫 NASH 新生註冊", color=0xea8053, timestamp=datetime.utcnow())
-                    embed.add_field(name="請輸入 **/register** 填寫資料開始註冊",
-                                    value="需求資料\n```學校:\n姓名:\n學號:\n年級:\n是否願意接受通知:```", inline=False)
-                    embed.set_footer(text=cha.guild.name)
-                    await cha.send(embed=embed, view=view)
-                if interaction.data["custom_id"] == "delete":
-                    try:
-                        if interaction.user.id in admin:
-                            await interaction.channel.delete()
-                        else:
-                            await interaction.response.send_message("此為管理員專用", ephemeral=True)
-                    except Exception as e:
-                        print(e)
-
-        except Exception as e:
-            print(e)
+        if "custom_id" in interaction.data:
+            if interaction.data["custom_id"] == "register":
+                category = discord.utils.get(interaction.guild.categories, id=1155424378553651250)
+                permissions = {
+                    interaction.guild.default_role: discord.PermissionOverwrite(read_messages=False),
+                    interaction.user: discord.PermissionOverwrite(read_messages=True)
+                }
+                cha = await interaction.guild.create_text_channel(name="註冊代碼 " + interaction.user.name,
+                                                                  category=category, overwrites=permissions)
+                await interaction.response.send_message(cha.mention + " 已創建", ephemeral=True)
+                phone_video_btn = discord.ui.Button(label="查看手機板註冊教學", custom_id="phone_video_btn")
+                pc_video_btn = discord.ui.Button(label="查看電腦板註冊教學", custom_id="pc_video_btn")
+                view = discord.ui.View()
+                view.add_item(del_btn)
+                view.add_item(phone_video_btn)
+                view.add_item(pc_video_btn)
+                embed = discord.Embed(title="🏫 NASH 新生註冊", color=0xea8053, timestamp=datetime.utcnow())
+                embed.add_field(name="請輸入 **/register** 填寫資料開始註冊",
+                                value="需求資料\n```學校:\n姓名:\n學號:\n年級:\n是否願意接受通知:```", inline=False)
+                embed.set_footer(text=cha.guild.name)
+                await cha.send(embed=embed, view=view)
+            if interaction.data["custom_id"] == "delete":
+                try:
+                    if interaction.user.id in admin:
+                        await interaction.channel.delete()
+                    else:
+                        await interaction.response.send_message("此為管理員專用", ephemeral=True)
+                except Exception as e:
+                    print(e)
+            if interaction.data["custom_id"] == "phone_video_btn":
+                await interaction.response.send_message(file=File("./assets/phone.mp4"))
+            if interaction.data["custom_id"] == "pc_video_btn":
+                await interaction.response.send_message(file=File("./assets/pc.mp4"))
 
     @commands.Cog.listener()
     async def on_ready(self):
