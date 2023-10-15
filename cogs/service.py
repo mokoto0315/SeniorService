@@ -51,6 +51,7 @@ class Service(Cog_Extension):
 
     @commands.Cog.listener()
     async def on_interaction(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True, thinking=True)
         # interaction.data 是一個包含交互資訊的字典
         # 有些交互不包含 custom_id，需要判斷式處理來防止出錯
         del_btn = discord.ui.Button(
@@ -67,7 +68,7 @@ class Service(Cog_Extension):
                 }
                 cha = await interaction.guild.create_text_channel(name="註冊代碼 " + interaction.user.name,
                                                                   category=category, overwrites=permissions)
-                await interaction.response.send_message(cha.mention + " 已創建", ephemeral=True)
+                await interaction.followup.send(cha.mention + " 已創建")
                 phone_video_btn = discord.ui.Button(label="查看手機板註冊教學", custom_id="phone_video_btn")
                 pc_video_btn = discord.ui.Button(label="查看電腦板註冊教學", custom_id="pc_video_btn")
                 view = discord.ui.View()
@@ -84,13 +85,13 @@ class Service(Cog_Extension):
                     if interaction.user.id in admin:
                         await interaction.channel.delete()
                     else:
-                        await interaction.response.send_message("此為管理員專用", ephemeral=True)
+                        await interaction.followup.send("此為管理員專用")
                 except Exception as e:
                     print(e)
             if interaction.data["custom_id"] == "phone_video_btn":
-                await interaction.response.send_message(file=File("./assets/phone.mp4"))
+                await interaction.followup.send(file=File("./assets/phone.mp4"))
             if interaction.data["custom_id"] == "pc_video_btn":
-                await interaction.response.send_message(file=File("./assets/pc.mp4"))
+                await interaction.followup.send(file=File("./assets/pc.mp4"))
 
     @commands.Cog.listener()
     async def on_ready(self):
